@@ -1,10 +1,9 @@
 package org.dattapeetham.transliteration.ui;
 
+import com.formdev.flatlaf.FlatLightLaf;
 import java.awt.BorderLayout;
-import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import javax.swing.JButton;
@@ -15,101 +14,107 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import org.dattapeetham.transliteration.FileTransliterator;
 import org.dattapeetham.transliteration.ICUHelper;
 
-public class Transliterator extends JPanel implements ActionListener {
+public class Transliterator extends JPanel {
     private static final long serialVersionUID = 1L;
-    private static final String newline = "\n";
-    JButton openButton;
-    JButton transliterateButton;
-    JButton tranliterateClpBoardButton;
-    JTextArea log = new JTextArea(10, 80);
-    JFileChooser fc;
-    JComboBox<Object> inputOptions;
-    JComboBox<Object> outputOptions;
+    private final JTextArea log = new JTextArea(10, 80);
+    private final JFileChooser fc = new JFileChooser();
+    private final JComboBox<String> outputOptions;
     private File inputFile;
 
     public Transliterator() {
         super(new BorderLayout());
-        this.log.setMargin(new Insets(5, 5, 5, 5));
-        this.log.setEditable(false);
-        JScrollPane logScrollPane = new JScrollPane(this.log);
-        this.fc = new JFileChooser();
-        this.outputOptions = new JComboBox<>(ICUHelper.getAvailableTargets("Telugu").toArray());
-        this.outputOptions.addItem("Telugu");
-        this.outputOptions.setSelectedItem("Devanagari");
-        JPanel buttonPanel = new JPanel();
-        this.openButton = createButton("Select Source File : ", buttonPanel);
-        this.transliterateButton = createButton(" Transliterate ", buttonPanel);
-        this.tranliterateClpBoardButton = createButton(" Trans Clipboard ", buttonPanel);
-        buttonPanel.add(this.outputOptions);
-        this.add((Component) buttonPanel, "First");
-        this.add((Component) logScrollPane, "Center");
+        log.setMargin(new Insets(5, 5, 5, 5));
+        log.setEditable(false);
+        var logScrollPane = new JScrollPane(log);
+
+        outputOptions = new JComboBox<>(ICUHelper.getAvailableTargets("Telugu").toArray(new String[0]));
+        outputOptions.addItem("Telugu");
+        outputOptions.setSelectedItem("Devanagari");
+
+        var buttonPanel = new JPanel();
+        createButton("Select Source File", buttonPanel, e -> selectSourceFile());
+        createButton("Transliterate", buttonPanel, e -> transliterateFile());
+        createButton("Trans Clipboard", buttonPanel, e -> transliterateClipBoard());
+        buttonPanel.add(outputOptions);
+
+        add(buttonPanel, BorderLayout.NORTH);
+        add(logScrollPane, BorderLayout.CENTER);
     }
 
-    private JButton createButton(String buttonLabel, JPanel buttonPanel) {
-        JButton button = new JButton(buttonLabel);
-        button.addActionListener(this);
-        buttonPanel.add(button);
+    private JButton createButton(String label, JPanel panel, java.awt.event.ActionListener action) {
+        var button = new JButton(label);
+        button.addActionListener(action);
+        panel.add(button);
         return button;
     }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        int returnVal;
-        if (e.getSource() == this.openButton) {
-            returnVal = this.fc.showOpenDialog(this);
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                this.inputFile = this.fc.getSelectedFile();
-                this.log.append("Opening: " + this.inputFile.getName() + "." + newline);
-            } else {
-                this.log.append("Open command cancelled by user.\n");
-            }
-            this.log.setCaretPosition(this.log.getDocument().getLength());
-        } else if (e.getSource() == this.transliterateButton) {
-            if (this.inputFile == null) {
-                this.log.append("Please click Select Source Button to select input file and then click transliterate \n");
-                return;
-            }
-        } else if (e.getSource() == this.tranliterateClpBoardButton) {
-            this.log.append("Trans Clipboard button selected.\n");
-            transliterateClipBoard();
+    private void selectSourceFile() {
+        var returnVal = fc.showOpenDialog(this);
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            inputFile = fc.getSelectedFile();
+            log.append("Opening: " + inputFile.getName() + ".\n");
+        } else {
+            log.append("Open command cancelled by user.\n");
+        }
+        log.setCaretPosition(log.getDocument().getLength());
+    }
+
+    private void transliterateFile() {
+        if (inputFile == null) {
+            log.append("Please select a source file first.\n");
             return;
         }
-        returnVal = this.fc.showSaveDialog(this);
+        var returnVal = fc.showSaveDialog(this);
         if (returnVal == JFileChooser.APPROVE_OPTION) {
-            File file = this.fc.getSelectedFile();
-            long start = System.currentTimeMillis();
-            this.log.append("Transliterating to : " + file.getName() + "." + newline);
-            FileTransliterator.transliterateFile(getSelectedLanguage(), this.inputFile, file);
-            this.log.append("Done transliterating in " + (double) (System.currentTimeMillis() - start) / 1000.0 + " seconds, Saved to: " + file.getName() + "." + newline);
+            var file = fc.getSelectedFile();
+            var start = System.currentTimeMillis();
+            log.append("Transliterating to: " + file.getName() + ".\n");
             try {
-                Runtime.getRuntime().exec("open " + file.getAbsolutePath());
-            } catch (IOException e1) {
-                e1.printStackTrace();
+                FileTransliterator.transliterateFile(getSelectedLanguage(), inputFile, file);
+                log.append("Done in " + (System.currentTimeMillis() - start) / 1000.0 + " seconds. Saved to: " + file.getName() + ".\n");
+                openFile(file);
+            } catch (Exception ex) {
+                log.append("Error during transliteration: " + ex.getMessage() + "\n");
             }
         } else {
-            this.log.append("Save command cancelled by user.\n");
+            log.append("Save command cancelled by user.\n");
         }
-        this.log.setCaretPosition(this.log.getDocument().getLength());
+        log.setCaretPosition(log.getDocument().getLength());
+    }
+
+    private void openFile(File file) {
+        if (Desktop.isDesktopSupported()) {
+            try {
+                Desktop.getDesktop().open(file);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private String getSelectedLanguage() {
-        return this.outputOptions.getSelectedItem().toString();
+        Object selected = outputOptions.getSelectedItem();
+        return selected != null ? selected.toString() : "Devanagari";
     }
 
     private void transliterateClipBoard() {
-        ClipboardTransfer transfer = new ClipboardTransfer();
-        String string = transfer.getClipboardContents();
-        String outputStr = ICUHelper.transliterate(string, getSelectedLanguage());
-        transfer.setClipboardContents(outputStr);
-        this.log.append("Transliterated and applied to clipboard");
+        var transfer = new ClipboardTransfer();
+        var input = transfer.getClipboardContents();
+        try {
+            var output = ICUHelper.transliterate(input, getSelectedLanguage());
+            transfer.setClipboardContents(output);
+            log.append("Transliterated and applied to clipboard.\n");
+        } catch (Exception e) {
+            log.append("Error during transliteration: " + e.getMessage() + "\n");
+        }
+        log.setCaretPosition(log.getDocument().getLength());
     }
 
     private static void createAndShowGUI() {
-        JFrame frame = new JFrame("Transliterator");
+        var frame = new JFrame("Transliterator");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.add(new Transliterator());
         frame.pack();
@@ -117,16 +122,9 @@ public class Transliterator extends JPanel implements ActionListener {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                Transliterator.createAndShowGUI();
-            }
+        SwingUtilities.invokeLater(() -> {
+            FlatLightLaf.setup();
+            createAndShowGUI();
         });
     }
 }
