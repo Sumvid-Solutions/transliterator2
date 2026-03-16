@@ -72,9 +72,13 @@ public class Transliterator extends JPanel {
             var file = fc.getSelectedFile();
             var start = System.currentTimeMillis();
             log.append("Transliterating to: " + file.getName() + ".\n");
-            FileTransliterator.transliterateFile(getSelectedLanguage(), inputFile, file);
-            log.append("Done in " + (System.currentTimeMillis() - start) / 1000.0 + " seconds. Saved to: " + file.getName() + ".\n");
-            openFile(file);
+            try {
+                FileTransliterator.transliterateFile(getSelectedLanguage(), inputFile, file);
+                log.append("Done in " + (System.currentTimeMillis() - start) / 1000.0 + " seconds. Saved to: " + file.getName() + ".\n");
+                openFile(file);
+            } catch (Exception ex) {
+                log.append("Error during transliteration: " + ex.getMessage() + "\n");
+            }
         } else {
             log.append("Save command cancelled by user.\n");
         }
