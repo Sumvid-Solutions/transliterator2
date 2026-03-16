@@ -92,7 +92,8 @@ public class Transliterator extends JPanel {
     }
 
     private String getSelectedLanguage() {
-        return outputOptions.getSelectedItem().toString();
+        Object selected = outputOptions.getSelectedItem();
+        return selected != null ? selected.toString() : "Devanagari";
     }
 
     private void transliterateClipBoard() {
