@@ -12,7 +12,7 @@ import java.io.IOException;
 public class ClipboardTransfer implements ClipboardOwner {
 
     public static void main(String[] aArguments) {
-        ClipboardTransfer textTransfer = new ClipboardTransfer();
+        var textTransfer = new ClipboardTransfer();
         System.out.println("Clipboard contains:" + textTransfer.getClipboardContents());
         textTransfer.setClipboardContents("blah, blah, blah");
         System.out.println("Clipboard contains:" + textTransfer.getClipboardContents());
@@ -23,24 +23,19 @@ public class ClipboardTransfer implements ClipboardOwner {
     }
 
     public void setClipboardContents(String aString) {
-        StringSelection stringSelection = new StringSelection(aString);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        var stringSelection = new StringSelection(aString);
+        var clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         clipboard.setContents(stringSelection, this);
     }
 
     public String getClipboardContents() {
-        String result = "";
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        Transferable contents = clipboard.getContents(null);
-        boolean hasTransferableText = contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor);
-        if (hasTransferableText) {
+        var result = "";
+        var clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        var contents = clipboard.getContents(null);
+        if (contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)) {
             try {
                 result = (String) contents.getTransferData(DataFlavor.stringFlavor);
-            } catch (UnsupportedFlavorException ex) {
-                System.out.println(ex);
-                ex.printStackTrace();
-            } catch (IOException ex) {
-                System.out.println(ex);
+            } catch (UnsupportedFlavorException | IOException ex) {
                 ex.printStackTrace();
             }
         }
