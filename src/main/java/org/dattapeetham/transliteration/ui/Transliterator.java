@@ -103,9 +103,13 @@ public class Transliterator extends JPanel {
     private void transliterateClipBoard() {
         var transfer = new ClipboardTransfer();
         var input = transfer.getClipboardContents();
-        var output = ICUHelper.transliterate(input, getSelectedLanguage());
-        transfer.setClipboardContents(output);
-        log.append("Transliterated and applied to clipboard.\n");
+        try {
+            var output = ICUHelper.transliterate(input, getSelectedLanguage());
+            transfer.setClipboardContents(output);
+            log.append("Transliterated and applied to clipboard.\n");
+        } catch (Exception e) {
+            log.append("Error during transliteration: " + e.getMessage() + "\n");
+        }
         log.setCaretPosition(log.getDocument().getLength());
     }
 
